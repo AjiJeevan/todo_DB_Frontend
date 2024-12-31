@@ -15,11 +15,13 @@ function App() {
 
   const [tasks, setTasks] = useState([])
   const [taskInput, setTaskInput] = useState("")
+  const [editId, setEditId] = useState(false)
+  const [editedTask, setEditedTask] = useState("")
 
   const getTask = ()=>{
     axios.get(api_domain)
     .then(res =>{
-      setTasks(res.data)
+      setTasks(res.data.todoList)
       console.log(res.data)
       console.log("getTask")
     })
@@ -36,7 +38,7 @@ function App() {
     setTaskInput(event.target.value)
   }
 
-  // Adding new Task
+  // Adding a new Task
   const formSubmitHandler = (event)=>{
      event.preventDefault()
      if(taskInput){
@@ -57,9 +59,9 @@ function App() {
   }
 
   // Delete Button Function
-  const deleteHandler = async(index)=>{
-    console.log(index)
-    axios.delete(`${api_domain}/task/${index}`)
+  const deleteHandler = async(id)=>{
+    console.log(id)
+    axios.delete(`${api_domain}/task/${id}`)
     .then(res =>{
       console.log("deleted")
       getTask()
@@ -68,46 +70,18 @@ function App() {
     .catch(err =>{
       alert(err.response.data.message)
     })
-    // getTask()
   }
 
-  // Edit and Save Button Function
-  const editTask = (event,id,task)=>{
-    const button = event.target
-    const li = event.target.parentNode
-
-    //Edit Button Press
-    if( button.textContent == "Edit" ){
-      const span = li.firstElementChild
-      let item = span.textContent
-      
-      const input = document.createElement("input")
-      input.type = "text"
-      // input.style.width = "400px"
-      input.value = span.textContent
-      li.insertBefore(input,span)
-      li.removeChild(span)
-      button.textContent = "Save"
-    }
-    // Save Button Press
-    else if( button.textContent == "Save" ){
-      const span = document.createElement("span")
-      const input = li.firstElementChild
-      span.textContent = input.value
-      // span.style.width = "400px"
-      li.insertBefore(span,input)
-      li.removeChild(input)
-
-      axios.patch(api_domain, {id: id, task : span.textContent })
-      .then((res)=>{
-        getTask()
-      })
-      .catch((err) =>{
-        console.log("error....")
-      })
-      button.textContent = "Edit"
-      location.reload()
-    }
+  // Save Edited Task
+  const saveNewTask = () =>{
+    axios.patch(api_domain, {id: editId, task : editedTask })
+    .then((res)=>{
+      getTask()
+      setEditId(false)
+    })
+    .catch((err) =>{
+      console.log("error....")
+    })
   }
 
 
@@ -130,33 +104,28 @@ function App() {
             </Button>
         </InputGroup>
         </Form>
-        
-        {/* <form onSubmit={formSubmitHandler}>
-          <input type='text' placeholder='Enter task' value={taskInput} onChange={changeHandler}/> <br/><br/>
-          <input type='submit' value='Add Task'/>
-        </form> */}
-        {/* <ul>
-          {tasks.map((task,index)=>{
-            return(
-              <>
-                <li key={index}>
-                  <span>{task.task}</span>
-                  <button onClick={(event)=>{editTask(event,index,task.task)}}>Edit</button>
-                  <button onClick={()=>{deleteHandler(index)}}>Delete</button>
-              </li> 
-              </>
-            )
-          })}
-        </ul> */}
 
         <ListGroup as="ul">
           {tasks.map((task,index)=>{
             return(
+              <>
               <ListGroup.Item as="li" className="d-flex justify-content-between align-items-start" key={index}>
-                <span className="ms-2 me-auto">{task.task}</span>
-                <Button variant="primary" onClick={(event)=>{editTask(event,index,task.task)}} >Edit</Button>
-                <Button variant="danger" onClick={()=>{deleteHandler(index)}}>Delete</Button>
+                {editId == task._id ?
+                <>
+                  <Form.Control type="text" defaultValue={editedTask} onChange={(e)=>setEditedTask(e.target.value)} />
+                  <Button variant="primary" onClick={()=>saveNewTask(task._id)}>Save</Button> 
+                </>:
+                <>
+                  <span className="ms-2 me-auto">{task.task}</span>
+                  <Button variant="primary" onClick={(event)=>{
+                    setEditId(task._id)
+                    setEditedTask(task.task)
+                  }} >Edit</Button>
+                  <Button variant="danger" onClick={()=>{deleteHandler(task._id)}}>Delete</Button>
+                </>
+                }
               </ListGroup.Item>
+              </>
             )
           })}
         </ListGroup>
